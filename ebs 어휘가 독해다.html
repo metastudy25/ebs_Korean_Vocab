@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>미사이든학원 어휘가 독해다_학습장</title>
+    <style>
+        * { box-sizing: border-box; font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; }
+        body { background-color: #f0f2f5; margin: 0; padding: 10px 20px; display: flex; flex-direction: column; align-items: center; overscroll-behavior: none; overflow-x: hidden; }
+
+        .app-container { max-width: 800px; width: 100%; background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+
+        .book-title { text-align: center; font-size: 22px; font-weight: 800; color: #1a237e; margin-bottom: 5px; padding-bottom: 10px; border-bottom: 2px solid #e0e7ff; }
+
+        /* 🔥 회독 및 상태 표시 뱃지 */
+        .status-header { text-align: center; margin-bottom: 15px; }
+        .cycle-indicator {
+            background: #e8eaf6; color: #3f51b5; padding: 6px 16px; border-radius: 20px;
+            font-weight: bold; font-size: 14px; border: 1px solid #c5cae9; display: inline-block; transition: 0.3s;
+        }
+        .cycle-indicator.test-mode { background: #ffebee; color: #c62828; border-color: #ffcdd2; }
+        .cycle-indicator.review-mode { background: #fff8e1; color: #e65100; border-color: #ffe082; }
+
+        .controls-header { display: flex; flex-wrap: nowrap; gap: 8px; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+        .controls-group { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; }
+        select, .btn-size { padding: 6px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; background: white; }
+        .toggle-switch { display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: 13px; white-space: nowrap; }
+        
+        .btn-size { background: #f8f9fa; cursor: pointer; }
+        .btn-size.active { background: #e0e7ff; border-color: #4f46e5; color: #4f46e5; font-weight: bold; }
+
+        .review-panel { display: flex; gap: 8px; align-items: center; justify-content: center; background: #fff8e1; padding: 8px 12px; border-radius: 8px; border: 1px dashed #ffb300; margin-bottom: 10px; flex-wrap: nowrap; }
+        .review-panel-title { font-size: 13px; color: #d84315; font-weight: bold; margin-right: 5px; white-space: nowrap; }
+        .btn-review { border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.05); white-space: nowrap; }
+        .btn-review.unknown { background: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
+        .btn-review.confused { background: #fff3e0; color: #e65100; border: 1px solid #ffcc80; }
+        .btn-review:active { transform: scale(0.95); }
+        .btn-review:hover { opacity: 0.8; }
+
+        .counter { text-align: center; color: #666; margin-bottom: 5px; font-size: 14px; font-weight: bold; }
+        
+        .scene { perspective: 1000px; width: 100%; height: 340px; margin-bottom: 15px; cursor: pointer; touch-action: none; position: relative; }
+        .card-wrapper { width: 100%; height: 100%; transition: transform 0.3s cubic-bezier(0.4, 0.2, 0.2, 1), opacity 0.3s ease; }
+        
+        .fly-out-left { transform: translateX(-150%) rotate(-15deg); opacity: 0; }
+        .fly-out-right { transform: translateX(150%) rotate(15deg); opacity: 0; }
+        .fly-out-up { transform: translateY(-150%) rotate(10deg); opacity: 0; }
+        .fly-out-down { transform: translateY(150%) rotate(-10deg); opacity: 0; }
+
+        .card { width: 100%; height: 100%; position: relative; transition: transform 0.5s cubic-bezier(0.4, 0.2, 0.2, 1); transform-style: preserve-3d; pointer-events: none; }
+        .card.is-flipped { transform: rotateY(180deg); }
+        
+        .card__face { 
+            position: absolute; width: 100%; height: 100%; backface-visibility: hidden; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; 
+            background: #e8f5e9; 
+            border-radius: 12px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.25), 0 5px 10px rgba(0,0,0,0.15); 
+            border: 2px solid #a5d6a7; 
+            padding: 20px; text-align: center; 
+        }
+        .card__face--back { 
+            transform: rotateY(180deg); 
+            background-color: #c8e6c9; 
+            border: 2px solid #81c784; 
+        }
+
+        .text-container {
+            width: 100%; max-height: 200px; overflow-y: auto; padding: 0 10px;
+            -ms-overflow-style: none; scrollbar-width: none;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .text-container::-webkit-scrollbar { display: none; }
+
+        .word-text { font-weight: bold; margin: 0; word-break: keep-all; overflow-wrap: break-word; line-height: 1.4; transition: font-size 0.2s; pointer-events: auto; user-select: none; color: #1b5e20; }
+        .hanja-text { font-weight: 600; margin-top: 10px; color: #555; transition: font-size 0.2s; }
+
+        .meaning-text { text-align: left; width: 100%; line-height: 1.6; }
+        .meaning-text .number-badge { color: #1565c0; font-weight: 800; margin-right: 3px; display: inline-block; margin-top: 6px; }
+        
+        .speak-btn {
+            background: #ffffff; color: #2e7d32; border: 1px solid #81c784; 
+            padding: 6px 14px; border-radius: 20px; font-size: 14px; font-weight: bold; 
+            cursor: pointer; pointer-events: auto; margin-top: 15px; flex-shrink: 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1); transition: 0.2s;
+            display: flex; align-items: center; gap: 5px;
+        }
+        .speak-btn:hover { background: #e8f5e9; }
+        .speak-btn:active { transform: scale(0.95); }
+
+        .badge-category { 
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); 
+            background: white; color: #2e7d32; padding: 6px 16px; border-radius: 20px; font-size: 14px; font-weight: bold; pointer-events: auto; border: 1px solid #2e7d32; 
+        }
+
+        .nav-buttons { display: flex; justify-content: center; gap: 8px; margin-bottom: 15px; }
+        .btn-nav { background: #388e3c; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-size: 15px; font-weight: bold; flex: 1; max-width: 130px; transition: 0.2s; white-space: nowrap; }
+        .btn-nav:hover { background: #2e7d32; }
+
+        .eval-buttons { display: flex; justify-content: center; gap: 10px; margin-bottom: 15px; flex-wrap: nowrap; }
+        .btn-eval { padding: 8px 15px; border-radius: 6px; cursor: pointer; font-size: 15px; font-weight: bold; transition: 0.2s; flex: 1; max-width: 140px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .btn-eval:active { transform: scale(0.95); }
+        .btn-eval.unknown { background: #ffebee; border: 1px solid #ef9a9a; color: #c62828; }
+        .btn-eval.confused { background: #fff8e1; border: 1px solid #ffe082; color: #f57f17; }
+        .btn-eval.known { background: #e8f5e9; border: 1px solid #a5d6a7; color: #2e7d32; }
+
+        .eval-count { font-size: 13px; font-weight: normal; margin-top: 2px; opacity: 0.85; }
+
+        .shortcuts { text-align: center; font-size: 12px; color: #888; border-top: 1px solid #eee; padding-top: 10px; margin-bottom: 15px; line-height: 1.5; }
+
+        .history-controls { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: nowrap; }
+        .history-toggle-btn { flex: 2; background: #607d8b; color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold; white-space: nowrap; }
+        .history-toggle-btn:hover { background: #455a64; }
+        .history-download-btn { flex: 1; background: #2e7d32; color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold; min-width: 120px; white-space: nowrap; }
+        .history-download-btn:hover { background: #1b5e20; }
+        
+        .history-container { width: 100%; overflow-x: auto; max-height: 300px; border: 1px solid #ddd; border-radius: 6px; display: none; }
+        .history-table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: center; white-space: nowrap; }
+        .history-table th, .history-table td { border: 1px solid #ddd; padding: 8px; }
+        .history-table th { background-color: #388e3c; color: white; position: sticky; top: 0; font-weight: bold; z-index: 1; }
+        
+        .history-table tr.bg-unknown td { background-color: #ffebee; } 
+        .history-table tr.bg-confused td { background-color: #fff9c4; } 
+        .history-table tr.bg-known td { background-color: #e8f5e9; } 
+
+        .footer-copyright {
+            text-align: center; font-size: 12px; color: #777; margin-top: 20px; padding-top: 15px;
+            border-top: 1px solid #eaeaea; line-height: 1.6; background: #fafafa; border-radius: 8px; padding: 15px;
+        }
+        .footer-copyright strong { color: #333; font-size: 13px; }
+        .footer-provider { display: inline-block; margin-top: 5px; padding: 4px 12px; background: #e8f5e9; color: #1b5e20; border-radius: 20px; font-weight: bold; font-size: 12px; }
+
+        @media (max-width: 600px) {
+            .controls-header { flex-wrap: wrap; justify-content: center; gap: 10px; }
+            .review-panel { flex-wrap: nowrap; padding: 8px 5px; gap: 4px; }
+            .review-panel-title { font-size: 12px; margin-right: 0; }
+            .btn-review { font-size: 12px; padding: 6px 8px; min-width: 0; }
+            .scene { height: 280px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div id="mainApp">
+        <div class="book-title">
+            📘 필수 국어 어휘 / 사자성어
+        </div>
+        
+        <!-- 🔥 누적 반복 회독수 및 테스트 모드 표시기 -->
+        <div class="status-header">
+            <div class="cycle-indicator" id="cycleIndicator">🔄 1회독 진행 중</div>
+        </div>
+
+        <div class="controls-header">
+            <div class="controls-group">
+                <select id="categorySelect" onchange="filterData(true)">
+                    <option value="all">모든 단원</option>
+                </select>
+                <select id="statusSelect" onchange="filterData(false)">
+                    <option value="all">전체 상태</option>
+                    <option value="비어있음">비어있음</option>
+                    <option value="모름">❌ 모름</option>
+                    <option value="헷갈림">⚠️ 헷갈림</option>
+                    <option value="알았음">✅ 알았음</option>
+                </select>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="qaToggle" checked onchange="updateCardDisplay()">
+                    <span>단어↔뜻</span>
+                </label>
+            </div>
+            
+            <div class="controls-group">
+                <span style="font-size: 13px; color: #555; font-weight: bold;">크기:</span>
+                <button class="btn-size" onclick="setFontSize('small', this)">소</button>
+                <button class="btn-size" onclick="setFontSize('medium', this)">중</button>
+                <button class="btn-size active" onclick="setFontSize('large', this)">대</button>
+                <button class="btn-size" onclick="setFontSize('xlarge', this)">특대</button>
+                <button class="btn-size" onclick="setFontSize('xxlarge', this)">초대</button>
+            </div>
+        </div>
+
+        <div class="review-panel">
+            <span class="review-panel-title">💡 집중 복습:</span>
+            <button class="btn-review unknown" onclick="startReview('모름')">❌ 모른 어휘</button>
+            <button class="btn-review confused" onclick="startReview('헷갈림')">⚠️ 헷갈린 어휘</button>
+        </div>
+
+        <div id="counter" class="counter">0 / 0</div>
+
+        <div class="scene" id="cardScene">
+            <div class="card-wrapper" id="cardWrapper">
+                <div class="card" id="flashcard">
+                    <!-- 앞면 -->
+                    <div class="card__face card__face--front">
+                        <div class="text-container">
+                            <div id="frontWord" class="word-text"></div>
+                            <div id="frontHanja" class="hanja-text"></div>
+                        </div>
+                        <button id="frontSpeakBtn" class="speak-btn" onclick="playAudio(event, this.dataset.text)">🔊 어휘 듣기</button>
+                        <div id="frontCategory" class="badge-category"></div>
+                    </div>
+                    <!-- 뒷면 -->
+                    <div class="card__face card__face--back">
+                        <div class="text-container">
+                            <div id="backText" class="word-text meaning-text"></div>
+                        </div>
+                        <button id="backSpeakBtn" class="speak-btn" onclick="playAudio(event, this.dataset.text)">🔊 뜻 듣기</button>
+                        <div id="backCategory" class="badge-category"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="nav-buttons">
+            <button class="btn-nav" onclick="handlePrevCard()">← 이전</button>
+            <button class="btn-nav" onclick="shuffleCards()" style="background-color: #555;">🔀 섞기</button>
+            <button class="btn-nav" onclick="handleNextCard()">다음 →</button>
+        </div>
+
+        <div class="eval-buttons">
+            <button class="btn-eval unknown" onclick="handleEvaluation('모름', 'left')">
+                <span>❌ 모름</span>
+                <span class="eval-count" id="count-unknown">0</span>
+            </button>
+            <button class="btn-eval confused" onclick="handleEvaluation('헷갈림', 'up')">
+                <span>⚠️ 헷갈림</span>
+                <span class="eval-count" id="count-confused">0</span>
+            </button>
+            <button class="btn-eval known" onclick="handleEvaluation('알았음', 'right')">
+                <span>✅ 알았음</span>
+                <span class="eval-count" id="count-known">0</span>
+            </button>
+        </div>
+
+        <div class="shortcuts">
+            <b>제스처:</b> 👈(모름) | 👉(알았음) | 👆(헷갈림) | 👇(이전)<br>
+            <b>단축키:</b> 스페이스바/↑↓(뒤집기) | ← →(이동) | 1, 2, 3(평가)
+        </div>
+
+        <div class="history-controls">
+            <button class="history-toggle-btn" onclick="toggleHistory()">📊 기록 표 보기</button>
+            <button class="history-download-btn" onclick="downloadCSV()">📥 CSV 저장</button>
+        </div>
+        
+        <div id="historyContainer" class="history-container">
+            <table class="history-table">
+                <thead>
+                    <tr>
+                        <th>단원</th>
+                        <th>단어</th>
+                        <th>한자음훈</th>
+                        <th>뜻</th>
+                        <th>상태</th>
+                        <th>학습일시</th>
+                    </tr>
+                </thead>
+                <tbody id="historyTableBody">
+                </tbody>
+            </table>
+        </div>
+
+        <div class="footer-copyright">
+            <strong>ⓒ 2026 엠베스트SE 미사이든학원 (이든관리형학습센터). All rights reserved.</strong><br>
+            📍 위치: 미사강변대로 80 그린프라자 7층 | 📞 상담문의: 010-8442-2817<br>
+            <div class="footer-provider">Provided by 황붕주 원장</div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // 🔥 아래의 백틱(\`) 사이에 국어 데이터를 넣어주세요. (구분자는 | 또는 탭, 쉼표 모두 가능합니다)
+    // 데이터 형식: 단원 | 단어 | 한자음훈 | 뜻
+    const rawCSVData = `단원|단어|한자음훈|뜻
+01강,강호,"강 江, 호수 湖","① 강과 호수를 아우러 일컫는 말. ② 예전에, 은자(隱者)나 시인(詩人), 묵객(墨客) 등이 현실을 도피하여 생활하던 시골이나 자연."
+01강,홍진,"붉을 紅, 티끌 塵",① 거마(車馬)가 일으키는 먼지. ② 번거롭고 속된 세상을 비유적으로 이르는 말.
+01강,매화,"매화나무 梅, 꽃 花",매실나무의 꽃.
+01강,삭풍,"초하루 朔, 바람 風",겨울철에 북쪽에서 불어오는 찬 바람.
+01강,경물,"경치 景, 사물 物",계절에 따라 달라지는 경치.
+01강,삼공,"석 三, 벼슬 公","① 고려 시대에, 태위(太尉)·사도(司徒)·사공(司空)의 세 벼슬을 통틀어 이르던 말. ② 의정부에서 국가 주요 정책을 결정하는 일을 맡아보던 세 벼슬. 영의정, 좌의정, 우의정을 이른다."
+01강,무릉도원,"굳셀 武, 큰 언덕 陵, 복숭아나무 桃, 근원 源","도연명의 「도화원기」에 나오는 말로, ‘이상향’, ‘별천지’를 비유적으로 이르는 말."
+01강,풍월,"바람 風, 달 月",① 맑은 바람과 밝은 달. ② 맑은 바람과 밝은 달을 대상으로 시를 짓고 흥취를 자아내어 즐겁게 놂.
+01강,연하,"안개 煙, 노을 霞",① 안개와 노을을 아울러 이르는 말. ② 고요한 산수의 경치를 비유적으로 이르는 말.
+01강,조물주,"지을 造, 만물 物, 주인 主",우주의 만물을 만들고 다스리는 신.
+02강,성현,"성인 聖, 어질 賢",지혜롭고 현명하며 인격이 훌륭하여 많은 사람이 본받을 만한 사람.
+02강,만고,"일만 萬, 옛 古",아주 오랜 세월 동안.
+02강,빈천,"가난할 貧, 천할 賤",가난하고 천함.
+02강,부용장,"연꽃 芙, 연꽃 蓉, 장막 帳",부용을 그리거나 수놓은 발장(房帳).
+02강,군은,"임금 君, 은혜 恩",임금의 은혜.
+02강,호걸,"호걸 豪, 뛰어날 傑",지혜와 용기가 뛰어나고 기개와 풍모가 있는 사람.
+02강,금수,"날짐승 禽, 길짐승 獸","① 날짐승과 길짐승이라는 뜻으로, 모든 짐승을 이르는 말. ② 행실이 아주 더럽고 나쁜 사람을 비유적으로 이르는 말."
+02강,오경,"다섯 五, 고칠 更",하룻밤을 다섯 부분으로 나누었을 때 맨 마지막 부분. 새벽 세 시에서 다섯 시 사이이다.
+02강,간장,"간 肝, 창자 腸",① 간과 창자. ② ‘애’나 ‘마음’을 비유적으로 이르는 말.
+02강,춘궁,"봄 春, 대궐 宮",‘황태자’나 ‘왕세자’를 달리 이르던 말.
+03강,격정,"과격할 激, 뜻 情",강렬하고 갑작스러워 누르기 어려운 감정.
+03강,신명,,흥겨운 신이나 멋.
+03강,애달프다,,① 마음이 안타깝거나 쓰라리다. ② 애처롭고 쓸쓸하다.
+03강,자조하다,"스스로 自, 비웃을 嘲",자기를 비웃다.
+03강,황량하다,"거칠 荒, 서늘할 涼",황폐하여 거칠고 쓸쓸하다.
+03강,동경하다,"그리워할 憧, 그리워할 憬",어떤 것을 간절히 그리워하여 그것만을 생각함.
+03강,경외감,"공경할 敬, 두려워할 畏, 느낄 感",공경하면서 두려워하는 감정.
+03강,간구하다,"간절할 懇, 구할 求",간절히 바라다.
+03강,응시하다,"집중할 凝, 볼 視",눈길을 모아 한 곳을 똑바로 바라보다.
+03강,관조적,"볼 觀, 비출 照, 어조사 的",고요한 마음으로 사물이나 현상을 관찰하거나 비추어 보는 (것).
+04강,심연,"깊을 深, 못 淵",① 깊은 못. ② 좀처럼 빠져나오기 힘든 구렁을 비유적으로 이르는 말.
+04강,객지,"손님 客, 땅 地",자기 집을 멀리 떠나 임시로 있는 곳.
+04강,성찰,"살필 省, 살필 察",자기의 마음을 반성하고 살핌.
+04강,치욕,"부끄러워할 恥, 욕될 辱",수치와 욕됨.
+04강,호명,"부를 呼, 이름 名",이름을 부름.
+04강,병치,"나란히 竝, 둘 置",두 가지 이상의 것을 한곳에 나란히 두거나 설치함.
+04강,부재하다,"아닐 不, 있을 在",그곳에 있지 아니하다.
+04강,모색하다,"찾을 摸, 찾을 索",일이나 사건 따위를 해결할 수 있는 방법이나 실마리를 더듬어 찾음.
+04강,표상하다,"겉 表, 형상 象",추상적이거나 드러나지 아니한 것을 구체적인 형상으로 드러내어 나타냄.
+04강,투영하다,"던질 投, 그림자 影",① 물체의 그림자를 어떤 물체 위에 비춤. ② (비유적으로) 어떤 일을 다른 일에 반영하여 나타냄.
+05강,조정,"아침 朝, 조정 廷",임금이 나라의 정치를 신하들과 의논하거나 집행하는 곳. 또는 그런 기구.
+05강,규중,"도장방 閨, 가운데 中",부녀자가 거처하는 곳.
+05강,배설하다,"늘어설 排, 베풀 設",연회나 의식(儀式)에 물건을 차려 놓다.
+05강,행장,"다닐 行, 꾸밀 裝",여행할 때 쓰는 물건과 차림.
+05강,시비,"모실 侍, 계집종 婢",곁에서 시중을 드는 계집종.
+05강,재배하다,"다시 再, 절 拜",두 번 절하다.
+05강,주렴,"구슬 珠, 발 簾",구슬 따위를 꿰어 만든 발.
+05강,각설,"물리칠 却, 말씀 說","말이나 글 따위에서, 이제까지 다루던 내용을 그만두고 화제를 다른 쪽으로 돌림."
+05강,소저,"작을 小, 누이 姐",‘아가씨’를 한문 투로 이르는 말.
+05강,귀양,,"고려·조선 시대에, 죄인을 먼 시골이나 섬으로 보내어 일정한 기간 동안 제한된 곳에서만 살게 하던 형벌."
+06강,원수,"으뜸 元, 장수 帥",군대에서 가장 높은 계급. 또는 그 계급의 사람.
+06강,반공,"반 判, 빌 空",땅으로부터 그리 높지 아니한 허공.
+06강,심복,"마음 心, 배 腹",마음 놓고 부리거나 일을 맡길 수 있는 사람.
+06강,적강,"귀양갈 謫, 내릴 降",신선이 인간 세상에 내려오거나 사람으로 태어남.
+06강,계교,"꾀할 計, 공교할 巧",요리조리 헤아려 보고 생각해 낸 꾀.
+06강,만조백관,"가득할 滿, 조정 朝, 일백 百, 벼슬 官",조정의 모든 벼슬아치.
+06강,도술,"길 道, 재주 術",도를 닦아 여러 가지 조화를 부리는 요술이나 술법.
+06강,희롱하다,"놀 戲, 희롱할 弄",① 말이나 행동으로 실없어 놀리다. ② 손아귀에 넣고 제멋대로 가지고 놀다.
+06강,속절없다,,단념할 수밖에 달리 어찌할 도리가 없다.
+06강,신이하다,"귀신 神, 기이할 異",신기하고 이상하다.
+07강,순사,"돌 巡, 조사할 査","일제 강점기에 둔, 경찰관의 가장 낮은 계급. 또는 그 계급의 사람."
+07강,세간,,집안 살림에 쓰는 온갖 물건.
+07강,과도기,"지날 過, 건널 渡, 기간 期",한 상태에서 다른 새로운 상태로 옮아가거나 바뀌어 가는 도중의 시기.
+07강,작인,"지을 作, 사람 人",다른 사람의 농지를 빌려 농사를 짓고 그 대가로 사용료를 지급하는 사람.
+07강,전장,"싸울 戰, 마당 場",싸움을 치르는 장소.
+07강,구호소,"구원할 救, 보호할 護, 곳 所",재해나 재난 따위로 어려움에 처한 사람을 돕는 일을 맡아보는 곳.
+07강,신원,"몸 身, 근원 元",개인의 성장 과정과 관련된 자료.
+07강,매개물,"중매 媒, 끼일 介, 물건 物",둘 사이에서 양편의 관계를 맺어 주는 물건.
+07강,급사,"줄 給, 섬길 仕","관청이나 회사, 가게 따위에서 잔심부름을 시키기 위하여 부리는 사람."
+07강,연명하다,"이을 延, 목숨 命",목숨을 겨우 이어 살아가다.
+08강,도회,"도읍 都, 모일 會",사람이 많이 살고 상공업이 발달한 번잡한 지역.
+08강,신작로,"새로울 新, 지을 作, 길 路","새로 만든 길이라는 뜻으로, 자동차가 다닐 수 있을 정도로 넓게 새로 낸 길을 이르는 말."
+08강,세태,"세대 世, 모양 態","사람들의 일상생활, 풍습 따위에서 보이는 세상의 상태나 형편."
+08강,생경하다,"날 生, 굳을 硬",익숙하지 않아 어색하다.
+08강,속물적,"풍속 俗, 사물 物, 어조사 的",교양이 없거나 식견이 좁고 세속적인 일에만 신경을 쓰는 (것).
+08강,소외,"소통할 疏, 바깥 外",어떤 무리에서 기피하여 따돌리거나 멀리함.
+08강,소시민,"작을 小, 시 시 市, 백성 民","노동자와 자본가의 중간 계급에 속하는 소상인, 수공업자, 하급 봉급생활자, 하급 공무원 따위를 통틀어 이르는 말."
+08강,배회하다,"노닐 徘, 노닐 徊",아무 목적도 없이 어떤 곳을 중심으로 어슬렁거리며 이리저리 돌아다니다.
+08강,반감,"반대할 反, 느낄 感",반대하거나 반항하는 감정.
+08강,조명하다,"비출 照, 밝을 明",① 광선으로 밝게 비추다. ② 어떤 대상을 일정한 관점으로 바라보다.
+09강,이치,"도리 理, 이를 致",사물의 정당한 조리(條理). 또는 도리에 맞는 취지.
+09강,지각,"알 知, 깨달을 覺",감각 기관을 통하여 대상을 인식함. 또는 그런 작용.
+09강,본성,"근본 本, 성품 性",사물이나 현상에 본디부터 있는 고유한 특성.
+09강,가변성,"옳을 可, 변할 變, 성품 性",일정한 조건에서 변할 수 있는 성질.
+09강,명제,"목숨 命, 제목 題",어떤 문제에 대한 하나의 논리적 판단 내용과 주장을 언어 또는 기호로 표시한 것.
+09강,척도,"자 尺, 법도 度",평가하거나 측정할 때 의거할 기준.
+09강,상충,"서로 相, 부딪힐 衝",맞지 아니하고 서로 어긋남.
+09강,욕망,"하고자 할 欲, 바랄 望",부족을 느껴 무엇을 가지거나 누리고자 함. 또는 그런 마음.
+09강,필연적,"반드시 必, 그럴 然, 어조사 的",사물의 관련이나 일의 결과가 반드시 그렇게 될 수밖에 없는 (것).
+09강,간주하다,"볼 看, 지을 做","상태, 모양, 성질 따위가 그와 같다고 보거나 그렇다고 여기다."
+10강,논증,"논할 論, 증거 證",옳고 그름을 이유를 들어 밝힘. 또는 그 근거나 이유.
+10강,상정하다,"생각 想, 정할 定",어떤 정황을 가정적으로 생각하여 단정하다.
+10강,범주,"법 範, 이랑 疇",동일한 성질을 가진 부류나 범위.
+10강,유입,"흐를 流, 들 入","돈, 물품 따위의 재화가 들어옴."
+10강,수양,"닦을 修, 기를 養","몸과 마음을 갈고닦아 품성이나 지식, 도덕 따위를 높은 경지로 끌어올림."
+10강,사료,"역사 史, 재료 料",역사 연구에 필요한 문헌이나 유물.
+10강,관료,"벼슬 官, 동료 僚",직업적인 관리. 또는 그들의 집단.
+10강,세습,"세대 世, 물려받을 襲","한집안의 재산이나 신분, 직업 따위를 대대로 물려주고 물려받음."
+10강,천명,"하늘 天, 명령 命",하늘의 명령.
+10강,내재하다,"안 內, 있을 在",어떤 사물이나 범위의 안에 들어 있다.
+11강,고양하다,"높을 高, 오를 揚",① 높이 쳐들어 올리다. ② 정신이나 기분 따위를 북돋워서 높이다.
+11강,국한,"판 局, 한계 限",범위를 일정한 부분에 한정함.
+11강,도출하다,"이끌 導, 날 出",판단이나 결론 따위를 이끌어 내다.
+11강,대면하다,"대할 對, 얼굴 面",서로 얼굴을 마주 보고 대하다.
+11강,대변하다,"대신할 代, 말 잘할 辯",① 어떤 사람이나 단체를 대신하여 그의 의견이나 태도를 표하다. ② 어떤 사실이나 의미를 대표적으로 나타내다.
+11강,부여하다,"붙을 附, 줄 與","사람에게 권리·명예·임무 따위를 지니도록 해 주거나, 사물이나 일에 가치·의의 따위를 붙여 주다."
+11강,외연,"바깥 外, 늘일 延",일정한 개념이 적용되는 사물의 전 범위.
+11강,기괴하다,"기이할 奇, 괴상할 怪",외관이나 분위기가 괴상하고 기이하다.
+11강,포착,"잡을 捕, 잡을 捉",① 꼭 붙잡음. ② 요점이나 요령을 얻음. ③ 어떤 기회나 정세를 알아차림.
+12강,유파,"흐를 流, 갈래 派","주로 학계나 예술계에서, 생각이나 방법 경향이 비슷한 사람이 모여서 이룬 무리."
+12강,질감,"바탕 質, 느낄 感","① 재질의 차이에서 받는 느낌. ② 물감, 캔버스, 필촉, 화구 따위가 만들어 내는 화면 대상의 느낌."
+12강,유리되다,"흩어질 遊, 떠날 離",따로 떨어지게 되다.
+12강,미시사,"적을 微, 볼 視, 역사 史",전체적인 면에서가 아니라 개별적으로 포착하여 아주 작은 사실들을 파헤치는 역사.
+12강,통시적,"꿰뚫을 通, 때 時, 어조사 的",어떤 시기를 종적으로 바라보는 (것).
+12강,이질적,"다를 異, 바탕 質, 어조사 的",성질이 다른 (것).
+12강,재현하다,"다시 再, 나타낼 現",다시 나타나다. 또는 다시 나타내다.
+12강,비정형성,"아닐 非, 정할 定, 본 型, 성질 性",일정한 형식이나 틀을 띠지 않는 성질.
+12강,사유하다,"생각 思, 생각할 惟","① 대상을 두루 생각하다. ② 개념, 구성, 판단, 추리 따위를 행하는 인간의 이성 작용을 하다."
+13강,금리,"돈 金, 이자 利",빌려준 돈이나 예금 따위에 붙는 이자. 또는 그 비율.
+13강,통화,"통할 通, 재화 貨",유통 수단이나 지불 수단으로서 기능하는 화폐.
+13강,환율,"바꿀 換, 비율 率",자기 나라 돈과 다른 나라 돈의 교환 비율.
+13강,수요,"구할 需, 요구할 要",어떤 재화나 용역을 일정한 가격으로 사려고 하는 욕구.
+13강,내수,"안 內, 구할 需",국내에서의 수요(需要).
+13강,재화,"재물 財, 재물 貨",사람이 바라는 바를 충족시켜 주는 모든 물건.
+13강,채권,"빚 債, 문서 券","① 남에게 빌린 돈의 금액을 적는 장부. ② 국가, 지방 자치 단체, 은행, 회사 따위가 사업에 필요한 자금을 차입하기 위하여 발행하는 유가 증권. 공채, 국채, 사채, 지방채 따위가 있다."
+14강,임의,"맡길 任, 뜻 意",① 일정한 기준이나 원칙 없이 하고 싶은 대로 함. ② 대상이나 장소 따위를 일정하게 정하지 아니함.
+14강,채무,"빚 債, 힘쓸 務",재산권의 하나. 특정인이 다른 특정인에게 어떤 행위를 하여야 할 의무를 이른다.
+14강,증여,"줄 贈, 줄 與",① 물품 따위를 선물로 줌. ② 당사자의 일방이 자기의 재산을 무상으로 상대편에게 줄 의사를 표시하고 상대편이 이를 승낙함으로써 성립하는 계약.
+14강,일의적,"하나 一, 옳을 義, 어조사 的",① 가장 중요한 의미를 갖는 (것). ② 뜻이나 결과가 같은 (것).
+14강,촉진하다,"재촉할 促, 나아갈 進",다그쳐 빨리 나아가게 하다.
+14강,도외시하다,"법도 度, 바깥 外, 볼 視",상관하지 아니하거나 무시하다.
+14강,공시,"공적일 公, 보일 示","① 일정한 내용을 공개적으로 게시하여 일반에게 널리 알림. 또는 그렇게 알리는 글. ② 공공 기관이 권리의 발생, 변경, 소멸 따위의 내용을 공개적으로 게시하여 일반에게 널리 알림. 또는 그렇게 알리는 글. ③ 점유는 소유자를 공시하는 기능도 수행한다."
+14강,위임하다,"맡길 委, 맡길 任",① 어떤 일을 책임 지워 맡기다. ② 당사자 중 한쪽이 상대편에게 사무 처리를 맡기고 상대편은 이를 승낙하다.
+15강,회의적,"품을 懷, 의심 疑, 어조사 的",어떤 일에 의심을 품는 (것).
+15강,의례,"법식 儀, 예절 禮",행사를 치르는 일정한 법식. 또는 정하여진 방식에 따라 치르는 행사.
+15강,통찰,"꿰뚫을 洞, 살필 察",예리한 관찰력으로 사물을 꿰뚫어 봄.
+15강,규율하다,"법칙 規, 법칙 律",질서나 제도를 좇아 다스리다.
+15강,시사하다,"보일 示, 부추길 唆",어떤 것을 미리 간접적으로 표현해 주다.
+15강,단행하다,"끊을 斷, 행할 行",결단하여 실행하다.
+15강,구별되다,"나눌 區, 나눌 別",성질이나 종류에 따라 차이가 나다.
+15강,향유하다,"누릴 享, 가질 有",누리어 가지다.
+16강,자의적,"방자할 恣, 뜻 意, 어조사 的",일정한 질서를 무시하고 제멋대로 하는 (것).
+16강,탄력성,"탄알 彈, 힘 力, 성질 性","원인 변수의 값이 1% 변할 때, 그 영향을 받는 변수가 몇 퍼센트나 변하는지를 나타내는 척도."
+16강,부동산,"아닐 不, 움직일 動, 낳을 産","부동산. 토지나 건물, 수목 따위이다."
+16강,저해하다,"막을 沮, 해할 害",막아서 못 하도록 해치다.
+16강,점유하다,"점령할 占, 있을 有","물건이나 영역, 지위 따위를 차지하다."
+16강,편향되다,"치우칠 偏, 향할 向",한쪽으로 치우치게 되다.
+16강,기인하다,"일어날 起, 원인 因",어떠한 것에 원인을 두다.
+16강,와해되다,"기와 瓦, 쪼갤 解",조직이나 계획 따위가 산산이 무너지고 흩어지게 되다. 기와가 깨진다는 뜻에서 나온 말이다.
+17강,거시 세계,"클 巨, 볼 視, 세상 世, 지경 界",눈으로 볼 수 있는 세계. 또는 감각으로 직접 알 수 있는 세계.
+17강,전자,"전기 電, 아들 子",음전하를 가지고 원자핵의 주위를 도는 소립자의 하나.
+17강,자기장,"자석 磁, 기운 氣, 마당 場","자석의 주위, 전류의 주위, 지구의 표면 따위와 같이 자기력이 작용이 미치는 공간."
+17강,주파수,"두루 周, 파동 波, 수량 數",전파나 음파가 1초 동안에 진동하는 횟수.
+17강,인과성,"원인 因, 결과 果, 성질 性",둘이나 그 이상의 존재 사이에 원인과 결과로서 맺어지는 관계.
+17강,행성,"다닐 行, 별 星",중심 별이 강하게 끌어당기는 힘 때문에 타원형의 궤도를 그리며 중심 별의 주위를 도는 천체.
+17강,공전,"공평할 公, 회전할 轉",한 천체가 다른 천체의 둘레를 주기적으로 도는 일. 행성이 태양의 둘레를 돌거나 위성이 행성의 둘레를 도는 따위를 이른다.
+17강,유기적,"있을 有, 틀 機, 어조사 的",생물체처럼 전체를 구성하고 있는 각 부분이 서로 밀접하게 관련을 가지고 있어서 떼어 낼 수 없는 (것).
+18강,항상성,"항상 恒, 일정할 恒, 성질 性",생체가 여러 가지 환경 변화에 대응하여 생명 현상이 제대로 일어날 수 있도록 일정한 상태를 유지하는 성질. 또는 그런 현상.
+18강,산화,"초 酸, 될 化","① 어떤 원자, 분자, 이온 따위가 전자를 잃는 일. ② 물질 중에 있는 어떤 원자의 산화수가 증가하는 일. ③ 어떤 물질이 산소와 결합하거나 수소를 잃는 일."
+18강,항원,"막을 抗, 근원 原",생체 속에 침입하여 항체를 형성하게 하는 단백성 물질. 세균이나 독소 따위가 있다.
+18강,교란하다,"어지러울 攪, 어지러울 亂",마음이나 상황 따위를 뒤흔들어 놓아 어지럽고 혼란하게 하다.
+18강,침착되다,"잠길 沈, 붙을 著",밑으로 가라앉아 들러붙게 되다.
+18강,응고,"엉길 凝, 굳을 固",액체 따위가 엉겨서 뭉쳐 딱딱하게 굳어짐.
+18강,이온,ion,"전하를 띠는 원자 또는 원자단. 전기적으로 중성인 원자가 전자를 잃으면 양전하를, 전자를 얻게 되면 음전하를 가진 이온이 된다."
+18강,발산되다,"일어날 發, 흩어질 散","① 감정 따위가 밖으로 드러나 해소되다. 또는 분위기 따위가 한껏 드러나다. ② 냄새, 빛, 열 따위가 사방으로 퍼져 나가다."
+18강,시료,"시험 試, 헤아릴 料","시험, 검사, 분석 따위에 쓰는 물질이나 생물."
+19강,프로토콜,protocol,"컴퓨터와 컴퓨터 사이, 또는 한 장치와 다른 장치 사이에서 데이터를 원활히 주고받기 위하여 약속한 여러 가지 규약(規約)."
+19강,클라이언트,client,서버 시스템과 연결하여 주된 작업이나 정보를 서버에게 요청하고 그 결과를 돌려받는 컴퓨터 시스템.
+19강,비트,bit,"정보량의 최소 기본 단위. 1비트는 이진수 체계(0, 1)의 한 자리로, 8비트는 1바이트이다."
+19강,데이터,data,"컴퓨터가 처리할 수 있는 문자, 숫자, 소리, 그림 따위의 형태로 된 정보."
+19강,메타버스,metaverse,"웹상에서 아바타를 이용하여 사회, 경제, 문화적 활동을 하는 따위처럼 가상 세계와 현실 세계의 경계가 허물어지는 것을 이르는 말."
+19강,식별하다,"알 識, 다를 別",분별하여 알아보다.
+19강,출력,"나갈 出, 힘 力",컴퓨터 따위의 기기(機器)나 장치가 입력을 받아 일을 하고 외부로 결과를 내는 일. 또는 그 결과.
+20강,디지털,digital,"시간, 소리, 세기 등과 같은 세상의 모든 현상을 수치로 바꾸어 나타내는 것."
+20강,화소,"그림 畵, 바탕 素","텔레비전이나 사진 전송에서, 화면을 전기적으로 분해한 최소의 단위 면적. 영상 전체의 화소 총수는 화질을 비교하는 데 유용하다."
+20강,센서,sensor,소리·빛·온도·압력 따위를 검출하는 소자(素子). 또는 그 소자를 갖춘 기계 장치.
+20강,송신하다,"보낼 送, 신호 信","주로 전기적 수단을 이용하여 전신이나 전화, 라디오, 텔레비전 방송 따위의 신호를 보내다."
+20강,피사체,"당할 被, 본뜰 寫, 형체 體",사진을 찍는 대상이 되는 물체.
+20강,원근,"멀 遠, 가까울 近",멀고 가까움.
+20강,고안되다,"헤아릴 考, 생각 案",연구하여 새로운 안이 나오다.
+20강,진공,"참 眞, 빌 空",물질이 전혀 존재하지 아니하는 공간.
+21강,구술,"입 口, 말할 述",입으로 말함.
+21강,발화,"필 發, 말할 화 話",소리를 내어 말을 함. 또는 그 말.
+21강,준언어,"좇을 準, 말 言, 말 語","의사소통에서, 언어적 요소와 분리할 수 없으나 발화된 음성 메시지와는 다른 의미를 지닐 수 있는 요소."
+21강,담화 표지,"말씀 談, 말할 話, 표 標, 기록할 識",문장의 내용에 직접적인 영향을 미치지는 않지만 전체적인 분위기나 대화의 최종적인 목적을 달성하고자 문장 간의 응집성을 높이기 위하여 사용하는 표지.
+21강,저하되다,"낮을 低, 아래 下","정도, 수준, 능률 따위가 떨어져 낮아지다."
+21강,여부,"더불어 與, 아닐 否",그러함과 그러하지 아니함.
+21강,재진술,"다시 再, 늘어놓을 陳, 말할 述",앞서 한 말에 대하여 표현을 달리 바꾸어 말함.
+21강,현안,"매달 懸, 안건 案",이전부터 의논하여 오면서도 아직 해결되지 않은 채 남아 있는 문제나 의안.
+21강,반대 신문,"반대 反, 내릴 對, 물을 訊, 물을 問","증인 신문에서, 주신문이 끝난 뒤에 반대 측 당사자가 증인을 상대로 행하는 신문."
+22강,거론하다,"들 擧, 논의할 論",어떤 사항을 논제로 삼아 제기하거나 논의하다.
+22강,과도하다,"지나칠 過, 정도 度",정도에 지나치다.
+22강,미흡하다,"아닐 未, 화할 洽",아직 흡족하지 못하거나 만족스럽지 아니하다.
+22강,관철되다,"꿸 貫, 통할 徹",어려움에도 꺾이지 않고 목적이 기어이 이루어지다.
+22강,독려하다,"살필 督, 힘쓸 勵",감독하며 격려하다.
+22강,순차적,"순서 順, 버금 次, 어조사 的",순서를 따라 차례대로 하는 (것).
+22강,생소하다,"날 生, 멀 疏",어떤 대상이 친숙하지 못하고 낯이 설다.
+22강,유보하다,"머무를 留, 보전할 保",어떤 일을 당장 처리하지 아니하고 나중으로 미루어 두다.
+22강,환기하다,"부를 喚, 일어날 起","주의나 여론, 생각 따위를 불러일으키다."
+22강,전환하다,"구를 轉, 바꿀 換",다른 방향이나 상태로 바꾸다.
+23강,기여하다,"부칠 寄, 줄 與",도움이 되도록 이바지하다.
+23강,부각하다,"뜰 浮, 새길 刻",어떤 사물을 특징지어 두드러지게 하다.
+23강,부합하다,"부신 符, 합할 合",사물이나 현상이 서로 꼭 들어맞다.
+23강,맥락,"줄기 脈, 이을 絡",사물 따위가 서로 이어져 있는 관계나 연관.
+23강,제안,"걸 提, 안건 案",안이나 의견으로 내놓음. 또는 그 안이나 의견.
+23강,가독성,"옳을 可, 읽을 讀, 성질 性",인쇄물이 얼마나 쉽게 읽히는가 하는 능률의 정도.
+23강,시급성,"때 時, 급할 急, 성질 性",시각을 다툴 만큼 절박하고 급한 상태의 성질.
+23강,당위성,"마땅할 當, 될 爲, 성질 性",마땅히 그렇게 하거나 되어야 할 성질.
+23강,보완하다,"기울 補, 완전할 完",모자라거나 부족한 것을 보충하여 완전하게 하다.
+24강,응집성,"엉길 凝, 모일 集, 성질 性",① 한군데에 엉겨서 뭉치는 성질. ② 글을 이루는 문장들이 형식상 특정한 장치에 의해 연결되는 원리.
+24강,통일성,"거느릴 統, 하나 一, 성질 性",① 다양한 요소들이 있으면서도 전체가 하나로서 파악되는 성질. ② 글의 내용이 하나의 주제로 긴밀하게 연결되는 원리.
+24강,절충안,"꺾을 折, 속마음 衷, 안건 案",두 가지 이상의 안을 서로 보충하여 알맞게 조절한 안.
+24강,비약적,"날 飛, 뛸 躍, 어조사 의 的",지위나 수준 따위가 갑자기 빠른 속도로 높아지거나 향상되는 (것).
+24강,대체하다,"대신할 代, 바꿀 替",다른 것으로 대신하다.
+24강,염두,"생각할 念, 머리 頭",① 생각의 시초. ② 마음의 속.
+24강,야기하다,"이끌 惹, 일어날 起",일이나 사건 따위를 끌어 일으키다.
+24강,편협하다,"치우칠 偏, 좁을 狹",한쪽으로 치우쳐 도량이 좁고 너그럽지 못하다.
+24강,소원하다,"멀 疏, 멀 遠",지내는 사이가 두텁지 아니하고 거리가 있어서 서먹서먹하다.
+25강,반모음,"절반 半, 어미 母, 소리 音",단독으로 음절을 이루지 못하고 단모음의 앞이나 뒤에 놓여 이중 모음을 형성하는 음소.
+25강,음절,"소리 音, 마디 節",홀로 발음할 수 있는 최소의 단위.
+25강,연음,"이을 連, 소리 音",앞 음절의 끝 자음이 모음으로 시작되는 뒤 음절의 초성으로 이어져 나는 소리.
+25강,자음군,"아들 子, 소리 音, 무리 群",초성이나 종성에 자음이 두 개 이상 무리 지어 나타나는 것.
+25강,동화,"같을 同, 될 化","말소리가 서로 이어질 때, 어느 한쪽 또는 양쪽이 영향을 받아 비슷하거나 같은 소리로 바뀌는 소리의 변화를 이르는 말."
+25강,모음 조화,"어미 母, 소리 音, 고를 調, 화할 和","두 음절 이상의 단어에서, 뒤의 모음이 앞 모음의 영향으로 그와 가깝거나 같은 소리로 되게 되는 언어 현상."
+26강,미지칭,"아닐 未, 알 知, 일컬을 稱",모르는 사물이나 사람을 가리키는 대명사.
+26강,무정물,"없을 無, 감정 情, 만물 物",나무나 돌 따위와 같이 감각이 없는 것.
+26강,상보적,"서로 相, 도울 補, 성질 的",서로 모자란 부분을 보충하는 관계에 있는 (것).
+26강,객체,"손님 客, 몸 體",문장 내에서 동사의 행위가 미치는 대상.
+26강,함의하다,"머금을 含, 뜻 意",말이나 글 속에 어떠한 뜻을 포함하고 있다.
+26강,호응하다,"부를 呼, 응할 應",① 부름이나 호소 따위에 대답하거나 응하다. ② 「언어」 앞에 어떤 말이 오면 거기에 응하는 말이 따라오다.
+26강,활용,"살 活, 쓸 用",① 도구나 물건 따위를 충분히 잘 이용함. ② 「언어」 용언의 어간이나 서술격 조사에 변하는 말이 붙어 문장의 성격을 바꿈. 또는 그런 일.
+26강,파생,"갈라질 派, 날 生",① 사물이 어떤 근원으로부터 갈려 나와 생김. ② 「언어」 실질 형태소에 접사가 결합하여 하나의 단어를 만듦. 또는 그런 일.
+27강,수사 의문문,"꾸밀 修, 말 辭, 의심할 疑, 물을 問, 글 ⽂",문장의 형식은 물음을 나타내나 답변을 요구하지 아니하고 강한 긍정 진술과 강한 부정 진술을 내포하고 있는 의문문.
+27강,담화,"말씀 談, 말할 話",① 서로 이야기를 주고받음. ② 한 단체나 공적인 자리에 있는 사람이 어떤 문제에 대한 견해나 태도를 밝히는 말. ③ 둘 이상의 문장이 연속되어 이루어지는 말의 단위.
+27강,전제하다,"앞 前, 끌 提",어떠한 사물이나 현상을 이루기 위하여 먼저 내세우다.
+27강,대용 표현,"대신할 代, 쓸 ⽤, 겉 表, 나타날 現","담화에서 언급된 말, 혹은 뒤에서 언급될 말을 대신하는 표현."
+27강,토대,"흙 土, 돈대 臺","① 목조 건축에서, 기초 위에 가로 대어 기둥을 고정하는 목조 부재. ② 어떤 사물이나 사업의 밑바탕이 되는 기초와 밑천을 비유적으로 이르는 말."
+27강,방점,"곁 傍, 점찍을 點",① 글 가운데에서 보는 사람의 주의를 끌기 위하여 글자 옆이나 위에 찍는 점. ② 중세 국어 각 음절의 성조를 표시하기 위한 「훈민정음」의 표기법.
+27강,언중,"말씀 言, 무리 衆",같은 언어를 사용하면서 공동생활을 하는 언어 사회 안의 대중(大衆).
+28강,공유,"함께 共, 있을 有","① 두 사람 이상이 한 물건을 공동으로 소유하거나 이용함. ② 정보나 의견, 감정 따위를 나눔."
+28강,대비,"대할 對, 견줄 比",두 가지의 차이를 밝히기 위하여 서로 맞대어 비교함. 또는 그런 비교.
+28강,동조하다,"같을 同, 고를 調",남의 주장에 자기의 의견을 일치시키거나 보조를 맞춤.
+28강,명시하다,"밝을 明, 보일 示",분명하게 드러내 보이다.
+28강,열람하다,"조사할 閱, 볼 覽",책이나 문서 따위를 죽 훑어보거나 조사하면서 보다.
+28강,추이,"옮길 推, 옮길 移",일이나 형편이 시간의 경과에 따라 변하여 나감. 또는 그런 경향.
+28강,시의성,"때 時, 알맞을 宜, 성질 性",그 당시의 사정이나 사회적 요구에 들어맞는 성질.
+28강,타당성,"온당할 妥, 마땅할 當, 성질 性",사물의 이치에 맞는 옳은 성질.
+28강,비선형적,"아닐 非, 선 線, 형상 形, 어조사 的",선처럼 길게 일렬로 나아가지 않는 (것).
+`;
+    // ⬆️ 붙여넣기는 여기까지만! 
+
+    let allWords = [];
+    let currentList = [];
+    let currentIndex = 0;
+    let isFlipped = false;
+    let currentFontSize = 'large';
+    let isAnimating = false;
+
+    // 🔥 장기 기억 회독 및 테스트 모드 시스템 변수
+    let cycleCount = 0; 
+    let isTestMode = false;
+
+    window.onload = function() {
+        processCSVText(rawCSVData);
+        initSwipeGesture();
+    };
+
+    function processCSVText(text) {
+        const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
+        if (lines.length === 0) return;
+
+        let delimiter = ',';
+        if (lines[0].includes('|')) delimiter = '|';
+        else if (lines[0].includes('\t')) delimiter = '\t';
+
+        const categories = new Set();
+        let startIndex = 0;
+        
+        if (lines[0].includes('단원') || lines[0].includes('단어') || lines[0].includes('뜻')) {
+            startIndex = 1; 
+        }
+
+        for (let i = startIndex; i < lines.length; i++) {
+            const row = parseCSVRow(lines[i], delimiter);
+            if (row.length >= 3) {
+                const category = row[0] ? row[0].trim() : '기본분류';
+                const question = row[1] ? row[1].trim() : '';
+                const hanja = row[2] ? row[2].trim() : '';
+                const answer = row[3] ? row[3].trim() : ''; 
+                
+                let finalHanja = hanja;
+                let finalAnswer = answer;
+                if (!answer && hanja.includes('①')) {
+                    finalAnswer = hanja;
+                    finalHanja = '';
+                }
+
+                if (question || finalAnswer) {
+                    allWords.push({
+                        id: i,
+                        category: category,
+                        question: question,
+                        hanja: finalHanja,
+                        answer: finalAnswer,
+                        status: '비어있음',
+                        studyDate: '' 
+                    });
+                    categories.add(category);
+                }
+            }
+        }
+
+        const catSelect = document.getElementById('categorySelect');
+        catSelect.innerHTML = '<option value="all">모든 단원</option>';
+        Array.from(categories).sort().forEach(cat => {
+            const opt = document.createElement('option');
+            opt.value = cat;
+            opt.textContent = cat;
+            catSelect.appendChild(opt);
+        });
+
+        filterData(true);
+    }
+
+    function parseCSVRow(str, delimiter) {
+        const result = [];
+        let curVal = '';
+        let inQuotes = false;
+        for (let i = 0; i < str.length; i++) {
+            const char = str[i];
+            if (char === '"' && str[i+1] === '"') {
+                curVal += '"';
+                i++;
+            } else if (char === '"') {
+                inQuotes = !inQuotes;
+            } else if (char === delimiter && !inQuotes) {
+                result.push(curVal);
+                curVal = '';
+            } else {
+                curVal += char;
+            }
+        }
+        result.push(curVal);
+        return result;
+    }
+
+    // resetCycle이 true면 회독 수를 0으로 초기화합니다 (단원 변경 시)
+    function filterData(resetCycle = false) {
+        if (resetCycle) {
+            cycleCount = 0;
+            isTestMode = false;
+            updateCycleUI();
+        }
+
+        const cat = document.getElementById('categorySelect').value;
+        const stat = document.getElementById('statusSelect').value;
+
+        currentList = allWords.filter(word => {
+            const matchCat = (cat === 'all') || (word.category === cat);
+            const matchStat = (stat === 'all') || (word.status === stat);
+            return matchCat && matchStat;
+        });
+
+        currentIndex = 0;
+        resetFlip();
+        updateCardDisplay();
+        updateCounts(); 
+        renderHistoryTable(); 
+    }
+
+    function updateCycleUI(customText = null) {
+        const indicator = document.getElementById('cycleIndicator');
+        if (customText) {
+            indicator.innerText = `🎯 ${customText}`;
+            indicator.className = 'cycle-indicator review-mode';
+        } else if (isTestMode) {
+            indicator.innerText = `🚨 3회독 완료: 실전 테스트 모드`;
+            indicator.className = 'cycle-indicator test-mode';
+        } else {
+            indicator.innerText = `🔄 ${cycleCount + 1}회독 진행 중`;
+            indicator.className = 'cycle-indicator';
+        }
+    }
+
+    function startReview(targetStatus) {
+        const cat = document.getElementById('categorySelect').value;
+        const count = allWords.filter(w => (cat === 'all' ? true : w.category === cat) && w.status === targetStatus).length;
+        
+        if (count === 0) {
+            alert(`현재 선택된 단원에 '${targetStatus}' 상태인 어휘가 없습니다!`);
+            return;
+        }
+
+        document.getElementById('statusSelect').value = targetStatus;
+        filterData(false); // 회독 수는 초기화하지 않고 그대로 유지
+        
+        for (let i = currentList.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [currentList[i], currentList[j]] = [currentList[j], currentList[i]];
+        }
+        updateCardDisplay();
+        renderHistoryTable();
+        alert(`선택하신 단원 중 ${count}개의 '${targetStatus}' 어휘를 집중 복습합니다!`);
+    }
+
+    function updateCounts() {
+        let unknownCount = 0, confusedCount = 0, knownCount = 0;
+        currentList.forEach(w => {
+            if (w.status === '모름') unknownCount++;
+            else if (w.status === '헷갈림') confusedCount++;
+            else if (w.status === '알았음') knownCount++;
+        });
+        document.getElementById('count-unknown').innerText = unknownCount;
+        document.getElementById('count-confused').innerText = confusedCount;
+        document.getElementById('count-known').innerText = knownCount;
+    }
+
+    // 모바일 오디오 권한 우회
+    let isAudioInitialized = false;
+    document.addEventListener('touchstart', function() {
+        if (!isAudioInitialized && 'speechSynthesis' in window) {
+            let utterance = new SpeechSynthesisUtterance('');
+            utterance.volume = 0;
+            window.speechSynthesis.speak(utterance);
+            isAudioInitialized = true;
+        }
+    }, { once: true });
+
+    let synth = window.speechSynthesis;
+    let voices = [];
+    function loadVoices() { if(synth) voices = synth.getVoices(); }
+    if (synth !== undefined) synth.onvoiceschanged = loadVoices;
+
+    function playAudio(event, text) {
+        event.stopPropagation(); 
+        if (!text || !synth) return;
+        synth.cancel(); 
+        let utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'ko-KR'; 
+        utterance.rate = 1.0; 
+        utterance.volume = 1.0; 
+        setTimeout(() => { synth.speak(utterance); }, 50);
+    }
+
+    function formatMeaning(text) {
+        if (!text) return '';
+        let formatted = text.replace(/([①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮])/g, '<br><span class="number-badge">$1</span>');
+        if (formatted.startsWith('<br>')) formatted = formatted.substring(4);
+        return formatted;
+    }
+
+    function updateCardDisplay() {
+        const counter = document.getElementById('counter');
+        const frontWord = document.getElementById('frontWord');
+        const frontHanja = document.getElementById('frontHanja');
+        const backText = document.getElementById('backText');
+        const frontCategory = document.getElementById('frontCategory');
+        const backCategory = document.getElementById('backCategory');
+        const frontSpeakBtn = document.getElementById('frontSpeakBtn');
+        const backSpeakBtn = document.getElementById('backSpeakBtn');
+
+        if (currentList.length === 0) {
+            counter.innerText = '0 / 0';
+            frontWord.innerText = '어휘가 없습니다.';
+            frontHanja.innerText = '';
+            backText.innerText = '조건을 변경해주세요.';
+            frontCategory.innerText = '-';
+            backCategory.innerText = '-';
+            frontSpeakBtn.style.display = 'none';
+            backSpeakBtn.style.display = 'none';
+            return;
+        }
+
+        counter.innerText = `${currentIndex + 1} / ${currentList.length}`;
+        const word = currentList[currentIndex];
+        const qToA = document.getElementById('qaToggle').checked;
+        
+        const baseSizes = { 'small': 24, 'medium': 36, 'large': 48, 'xlarge': 64, 'xxlarge': 80 };
+        const basePx = baseSizes[currentFontSize];
+        
+        // 뜻 글자 수에 비례하여 동적으로 폰트 크기 자동 축소 (카드 넘침 방지)
+        const answerLen = word.answer.length;
+        let meaningScale = 0.8; 
+        if (answerLen > 120) meaningScale = 0.35;       
+        else if (answerLen > 80) meaningScale = 0.45;   
+        else if (answerLen > 40) meaningScale = 0.55;   
+        else if (answerLen > 20) meaningScale = 0.70;   
+
+        if (qToA) {
+            frontWord.innerHTML = word.question;
+            frontWord.style.fontSize = basePx + 'px';
+            frontWord.style.textAlign = 'center';
+            
+            frontHanja.innerHTML = word.hanja;
+            frontHanja.style.display = word.hanja ? 'block' : 'none';
+            frontHanja.style.fontSize = (basePx * 0.5) + 'px'; 
+            
+            backText.innerHTML = formatMeaning(word.answer);
+            backText.style.fontSize = (basePx * meaningScale) + 'px';
+            
+            frontSpeakBtn.style.display = 'flex';
+            frontSpeakBtn.dataset.text = word.question;
+            backSpeakBtn.style.display = 'none';
+        } else {
+            frontWord.innerHTML = formatMeaning(word.answer);
+            frontWord.style.fontSize = (basePx * meaningScale) + 'px';
+            frontWord.style.textAlign = 'left';
+            
+            frontHanja.style.display = 'none';
+            
+            backText.innerHTML = word.question + (word.hanja ? `<br><span style="font-size:0.6em; color:#777; font-weight:normal; margin-top:8px; display:block;">${word.hanja}</span>` : '');
+            backText.style.fontSize = basePx + 'px';
+            
+            frontSpeakBtn.style.display = 'none';
+            backSpeakBtn.style.display = 'flex';
+            backSpeakBtn.dataset.text = word.question;
+        }
+
+        frontCategory.innerText = word.category;
+        backCategory.innerText = word.category;
+    }
+
+    function setFontSize(size, btnElement) {
+        currentFontSize = size;
+        document.querySelectorAll('.btn-size').forEach(btn => btn.classList.remove('active'));
+        if(btnElement) btnElement.classList.add('active');
+        updateCardDisplay();
+    }
+
+    function flipCard() {
+        if (currentList.length === 0 || isAnimating) return;
+        isFlipped = !isFlipped;
+        document.getElementById('flashcard').classList.toggle('is-flipped', isFlipped);
+    }
+
+    function resetFlip() {
+        isFlipped = false;
+        document.getElementById('flashcard').classList.remove('is-flipped');
+    }
+
+    // 실전 테스트 종료 및 오답 노트 생성 로직
+    function finishTest() {
+        const known = currentList.filter(w => w.status === '알았음').length;
+        const confused = currentList.filter(w => w.status === '헷갈림').length;
+        const unknown = currentList.filter(w => w.status === '모름').length;
+
+        const wrongs = currentList.filter(w => w.status === '헷갈림' || w.status === '모름' || w.status === '비어있음');
+
+        alert(`📝 [실전 테스트 결과]\n- 완벽히 안 어휘: ${known}개\n- 헷갈린 어휘: ${confused}개\n- 모르는 어휘: ${unknown}개\n\n${wrongs.length > 0 ? '틀린 어휘들을 오답 단어장으로 모아 복습을 시작합니다.' : '100점입니다! 완벽하게 마스터하셨습니다!'}`);
+
+        isTestMode = false;
+        
+        if (wrongs.length > 0) {
+            cycleCount = 0; 
+            currentList = wrongs; // 오답만 남김
+            currentIndex = 0;
+            resetFlip();
+            updateCardDisplay();
+            renderHistoryTable();
+            updateCycleUI('틀린 어휘 오답 복습 중');
+        } else {
+            cycleCount = 0;
+            updateCycleUI('학습 완벽 마스터 🏆');
+        }
+    }
+
+    function handleEvaluation(status, direction) {
+        if (currentList.length === 0 || isAnimating) return;
+        isAnimating = true;
+
+        const now = new Date();
+        const dateString = now.getFullYear() + '.' + (now.getMonth() + 1) + '.' + now.getDate();
+        currentList[currentIndex].status = status;
+        currentList[currentIndex].studyDate = dateString;
+        
+        updateCounts();
+        renderHistoryTable(); 
+
+        const wrapper = document.getElementById('cardWrapper');
+        wrapper.style.transition = 'transform 0.3s cubic-bezier(0.4, 0.2, 0.2, 1), opacity 0.3s ease';
+        
+        if (direction === 'left') wrapper.classList.add('fly-out-left');
+        else if (direction === 'right') wrapper.classList.add('fly-out-right');
+        else if (direction === 'up') wrapper.classList.add('fly-out-up');
+        else wrapper.classList.add('fly-out-left'); 
+
+        setTimeout(() => {
+            let cycleTriggered = false;
+
+            // 🔥 핵심: 1회독 판단 (테스트 모드가 아닐 때, 현재 단원의 모든 단어가 '알았음'인지 확인)
+            if (!isTestMode) {
+                const cat = document.getElementById('categorySelect').value;
+                const baseList = allWords.filter(w => cat === 'all' ? true : w.category === cat);
+                
+                if (baseList.length > 0 && baseList.every(w => w.status === '알았음')) {
+                    cycleTriggered = true;
+                    cycleCount++;
+                    
+                    if (cycleCount < 3) {
+                        alert(`🎉 [${cycleCount}회독 완료]\n모든 어휘를 '알았음'으로 만들었습니다!\n기억을 장기화하기 위해 상태를 초기화하고 ${cycleCount+1}회독을 시작합니다.`);
+                        baseList.forEach(w => w.status = '비어있음');
+                        document.getElementById('statusSelect').value = 'all';
+                        updateCycleUI();
+                        filterData(false); 
+                        shuffleCards();
+                    } else {
+                        alert(`🏆 [3회독 완료]\n훌륭합니다! 3회독을 모두 마쳤습니다.\n지금부터 '실전 테스트'를 시작합니다.\n\n테스트가 끝나면 틀린 어휘만 모아 오답 노트가 생성됩니다.`);
+                        isTestMode = true;
+                        baseList.forEach(w => w.status = '비어있음');
+                        document.getElementById('statusSelect').value = 'all';
+                        updateCycleUI();
+                        filterData(false);
+                        shuffleCards();
+                    }
+                }
+            }
+
+            if (!cycleTriggered) {
+                if (currentIndex < currentList.length - 1) {
+                    currentIndex++;
+                    resetFlip();
+                    updateCardDisplay();
+                    
+                    wrapper.style.transition = 'none';
+                    wrapper.className = 'card-wrapper'; 
+                    wrapper.style.opacity = '0';
+                    wrapper.style.transform = 'scale(0.8)';
+                    
+                    void wrapper.offsetWidth; 
+                    
+                    wrapper.style.transition = 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease';
+                    wrapper.style.opacity = '1';
+                    wrapper.style.transform = 'scale(1)';
+                    
+                    setTimeout(() => { 
+                        isAnimating = false; 
+                        wrapper.style.transform = ''; 
+                    }, 300);
+                } else {
+                    wrapper.style.transition = 'none';
+                    wrapper.className = 'card-wrapper';
+                    isAnimating = false;
+                    
+                    // 마지막 카드 도달 시 처리
+                    if (isTestMode) {
+                        finishTest();
+                    } else {
+                        alert('현재 목록의 마지막 어휘입니다!\n아직 100% 외우지 못한 어휘가 남아있습니다. [집중 복습]을 활용해 모두 완료해보세요.');
+                    }
+                }
+            } else {
+                // 회독 처리가 된 경우 애니메이션 정리
+                wrapper.style.transition = 'none';
+                wrapper.className = 'card-wrapper';
+                wrapper.style.transform = ''; 
+                wrapper.style.opacity = '1';
+                isAnimating = false;
+            }
+        }, 300);
+    }
+
+    function handleNextCard() {
+        if (currentList.length === 0 || isAnimating || currentIndex >= currentList.length - 1) return;
+        isAnimating = true;
+        const wrapper = document.getElementById('cardWrapper');
+        
+        wrapper.style.transition = 'transform 0.3s cubic-bezier(0.4, 0.2, 0.2, 1), opacity 0.3s ease';
+        wrapper.classList.add('fly-out-left');
+        
+        setTimeout(() => {
+            currentIndex++;
+            resetFlip();
+            updateCardDisplay();
+            
+            wrapper.style.transition = 'none';
+            wrapper.className = 'card-wrapper';
+            wrapper.style.opacity = '0';
+            wrapper.style.transform = 'scale(0.8)';
+            
+            void wrapper.offsetWidth; 
+            
+            wrapper.style.transition = 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease';
+            wrapper.style.opacity = '1';
+            wrapper.style.transform = 'scale(1)';
+            
+            setTimeout(() => { isAnimating = false; wrapper.style.transform = ''; }, 300);
+        }, 300); 
+    }
+
+    function handlePrevCard() {
+        if (currentList.length === 0 || isAnimating || currentIndex <= 0) return;
+        isAnimating = true;
+        const wrapper = document.getElementById('cardWrapper');
+        
+        wrapper.style.transition = 'transform 0.3s cubic-bezier(0.4, 0.2, 0.2, 1), opacity 0.3s ease';
+        wrapper.classList.add('fly-out-down'); 
+        
+        setTimeout(() => {
+            currentIndex--;
+            resetFlip();
+            updateCardDisplay();
+            
+            wrapper.style.transition = 'none';
+            wrapper.className = 'card-wrapper';
+            wrapper.style.opacity = '0';
+            wrapper.style.transform = 'scale(1.2)'; 
+            
+            void wrapper.offsetWidth;
+            
+            wrapper.style.transition = 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease';
+            wrapper.style.opacity = '1';
+            wrapper.style.transform = 'scale(1)';
+            
+            setTimeout(() => { isAnimating = false; wrapper.style.transform = ''; }, 300);
+        }, 300);
+    }
+
+    function shuffleCards() {
+        if (currentList.length === 0 || isAnimating) return;
+        for (let i = currentList.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [currentList[i], currentList[j]] = [currentList[j], currentList[i]];
+        }
+        currentIndex = 0;
+        resetFlip();
+        updateCardDisplay();
+        renderHistoryTable(); 
+    }
+
+    function renderHistoryTable() {
+        const tbody = document.getElementById('historyTableBody');
+        tbody.innerHTML = '';
+        
+        currentList.forEach(word => {
+            const tr = document.createElement('tr');
+            
+            if (word.status === '모름') tr.className = 'bg-unknown';
+            else if (word.status === '헷갈림') tr.className = 'bg-confused';
+            else if (word.status === '알았음') tr.className = 'bg-known';
+
+            tr.innerHTML = `
+                <td>${word.category}</td>
+                <td style="text-align:center; font-weight:bold;">${word.question}</td>
+                <td style="text-align:center;">${word.hanja}</td>
+                <td style="text-align:left;">${word.answer}</td>
+                <td>${word.status}</td>
+                <td style="color:#555;">${word.studyDate}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function toggleHistory() {
+        const container = document.getElementById('historyContainer');
+        if (container.style.display === 'none' || container.style.display === '') {
+            container.style.display = 'block';
+            renderHistoryTable(); 
+        } else {
+            container.style.display = 'none';
+        }
+    }
+
+    function downloadCSV() {
+        let csvContent = "\uFEFF단원|단어|한자음훈|뜻|상태|학습일시\n";
+        
+        allWords.forEach(word => {
+            let c = `"${word.category}"`;
+            let q = `"${word.question.replace(/"/g, '""')}"`;
+            let h = `"${word.hanja.replace(/"/g, '""')}"`;
+            let a = `"${word.answer.replace(/"/g, '""')}"`;
+            let s = `"${word.status}"`;
+            let d = `"${word.studyDate}"`;
+            
+            csvContent += `${c}|${q}|${h}|${a}|${s}|${d}\n`;
+        });
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        
+        const now = new Date();
+        const dateStr = now.getFullYear() + String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0');
+        link.setAttribute("download", `미사이든학원_국어학습기록_${dateStr}.csv`);
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    function initSwipeGesture() {
+        const scene = document.getElementById('cardScene');
+        let startX = 0;
+        let startY = 0;
+
+        scene.addEventListener('pointerdown', (e) => {
+            if (isAnimating) return; 
+            startX = e.clientX;
+            startY = e.clientY;
+            scene.setPointerCapture(e.pointerId);
+        });
+
+        scene.addEventListener('pointerup', (e) => {
+            if (isAnimating) return;
+            const endX = e.clientX;
+            const endY = e.clientY;
+            
+            const diffX = endX - startX;
+            const diffY = endY - startY;
+
+            if (Math.abs(diffX) > 40 || Math.abs(diffY) > 40) {
+                if (Math.abs(diffX) > Math.abs(diffY)) {
+                    if (diffX > 0) handleEvaluation('알았음', 'right'); 
+                    else handleEvaluation('모름', 'left'); 
+                } else {
+                    if (diffY < 0) handleEvaluation('헷갈림', 'up'); 
+                    else handlePrevCard(); 
+                }
+            } 
+            else if (Math.abs(diffX) < 10 && Math.abs(diffY) < 10) {
+                flipCard();
+            }
+        });
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'ArrowDown') { 
+            e.preventDefault(); 
+            flipCard(); 
+        }
+        else if (e.code === 'ArrowLeft') { handlePrevCard(); }
+        else if (e.code === 'ArrowRight') { handleNextCard(); }
+        else if (e.key === '1') { handleEvaluation('모름', 'left'); }
+        else if (e.key === '2') { handleEvaluation('헷갈림', 'up'); }
+        else if (e.key === '3') { handleEvaluation('알았음', 'right'); }
+        else if (e.key.toLowerCase() === 's') { shuffleCards(); }
+    });
+</script>
+</body>
+</html>
